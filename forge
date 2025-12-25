@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Forge CLI wrapper script
+# This runs the TypeScript CLI directly using tsx
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec npx --prefix "$SCRIPT_DIR" tsx "$SCRIPT_DIR/bin/forge.ts" "$@"

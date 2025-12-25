@@ -1,0 +1,13 @@
+{
+  "name": "${name}",
+  "vendor": "${vendor}",
+  "appId": "${appId}",
+  "binaryName": "${binaryName}",
+  "firefox": {
+    "version": "${firefoxVersion}",
+    "product": "firefox"
+  },
+  "build": {
+    "jobs": 8
+  }
+}
