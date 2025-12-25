@@ -298,7 +298,9 @@ This project enforces code quality through:
 
 ## License
 
-EUPL-1.2. See [LICENSE](LICENSE) for details.
+This repository is licensed under the [European Union Public License 1.2 (EUPL-1.2)](LICENSE.md).
+
+Firefox source code (fetched into `engine/` during setup) is subject to the [Mozilla Public License 2.0](https://www.mozilla.org/en-US/MPL/2.0/) and is not distributed by this repository.
 
 ## Soon to be Added
 
