@@ -1,4 +1,22 @@
 /**
+ * Options for the setup command.
+ */
+export interface SetupOptions {
+  /** Browser name */
+  name?: string;
+  /** Vendor/company name */
+  vendor?: string;
+  /** Application ID (reverse-domain format) */
+  appId?: string;
+  /** Binary name (executable name) */
+  binaryName?: string;
+  /** Firefox version to base on */
+  firefoxVersion?: string;
+  /** Overwrite existing configuration without prompting */
+  force?: boolean;
+}
+
+/**
  * Options for the download command.
  */
 export interface DownloadOptions {

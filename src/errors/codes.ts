@@ -19,6 +19,8 @@ export const ExitCode = {
   PATCH_ERROR: 6,
   /** Required tool not found (python3.11, git, tar) */
   MISSING_DEPENDENCY: 7,
+  /** Invalid command-line argument */
+  INVALID_ARGUMENT: 8,
 } as const;
 
 export type ExitCode = (typeof ExitCode)[keyof typeof ExitCode];

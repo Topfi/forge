@@ -307,3 +307,4 @@ The following features are planned for future releases:
 - **Docker builds** - Reproducible builds using Docker containers
 - **CI mode** - Automated setup for continuous integration pipelines
 - **Update manifests** - Generate update server manifests for auto-updates
+- **UI mode** - Rebuild only UI changes for faster iteration

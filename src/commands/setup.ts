@@ -5,7 +5,10 @@ import { configExists, writeConfig, getProjectPaths } from '../core/config.js';
 import { ensureDir, pathExists } from '../utils/fs.js';
 import { intro, outro, spinner, cancel, isCancel } from '../utils/logger.js';
 import type { ForgeConfig } from '../types/config.js';
+import type { SetupOptions } from '../types/commands.js';
 import { isValidAppId, isValidFirefoxVersion } from '../utils/validation.js';
+import { InvalidArgumentError } from '../errors/base.js';
+import { ConfigError } from '../errors/config.js';
 
 /**
  * Gets the path to the templates directory.
@@ -18,103 +21,189 @@ function getTemplatesDir(): string {
 }
 
 /**
- * Runs the interactive setup command.
- * @param projectRoot - Root directory for the project
+ * Validates CLI-provided options and throws ForgeError if invalid.
  */
-export async function setupCommand(projectRoot: string): Promise<void> {
+function validateCliOptions(options: SetupOptions): void {
+  if (options.name !== undefined) {
+    if (!options.name.trim()) {
+      throw new InvalidArgumentError('Name is required', '--name');
+    }
+    if (options.name.length > 50) {
+      throw new InvalidArgumentError('Name must be 50 characters or less', '--name');
+    }
+  }
+  if (options.vendor !== undefined && !options.vendor.trim()) {
+    throw new InvalidArgumentError('Vendor is required', '--vendor');
+  }
+  if (options.appId !== undefined && !isValidAppId(options.appId)) {
+    throw new InvalidArgumentError(
+      'Invalid app ID format (use reverse-domain: org.example.browser)',
+      '--app-id'
+    );
+  }
+  if (options.binaryName !== undefined && !/^[a-z][a-z0-9-]*$/.test(options.binaryName)) {
+    throw new InvalidArgumentError(
+      'Binary name must start with a letter and contain only lowercase letters, numbers, and hyphens',
+      '--binary-name'
+    );
+  }
+  if (options.firefoxVersion !== undefined && !isValidFirefoxVersion(options.firefoxVersion)) {
+    throw new InvalidArgumentError(
+      'Invalid Firefox version format (e.g., 146.0 or 128.0esr)',
+      '--firefox-version'
+    );
+  }
+}
+
+/**
+ * Runs the setup command.
+ * @param projectRoot - Root directory for the project
+ * @param options - CLI options for non-interactive mode
+ */
+export async function setupCommand(projectRoot: string, options: SetupOptions = {}): Promise<void> {
+  // Validate any CLI-provided options first
+  validateCliOptions(options);
+
+  // Determine if we can run interactively
+  const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+
   intro('Forge Setup');
 
   // Check if config already exists
   if (await configExists(projectRoot)) {
-    const overwrite = await p.confirm({
-      message: 'A forge.json already exists. Overwrite?',
-      initialValue: false,
-    });
+    if (options.force) {
+      // Skip confirmation when --force is provided
+    } else if (isInteractive) {
+      const overwrite = await p.confirm({
+        message: 'A forge.json already exists. Overwrite?',
+        initialValue: false,
+      });
 
-    if (isCancel(overwrite) || !overwrite) {
-      cancel('Setup cancelled');
-      return;
+      if (isCancel(overwrite) || !overwrite) {
+        cancel('Setup cancelled');
+        return;
+      }
+    } else {
+      throw new ConfigError('forge.json already exists. Use --force to overwrite.');
     }
   }
 
-  // Gather project information
-  const project = await p.group(
-    {
-      name: () =>
-        p.text({
-          message: 'What is the name of your browser?',
-          placeholder: 'MyBrowser',
-          validate: (value) => {
-            if (!value.trim()) return 'Name is required';
-            if (value.length > 50) return 'Name must be 50 characters or less';
-            return undefined;
-          },
-        }),
+  let finalName: string;
+  let finalVendor: string;
+  let finalAppId: string;
+  let finalBinaryName: string;
+  let finalFirefoxVersion: string;
 
-      vendor: () =>
-        p.text({
-          message: 'What is your vendor/company name?',
-          placeholder: 'My Company',
-          validate: (value) => {
-            if (!value.trim()) return 'Vendor is required';
-            return undefined;
-          },
-        }),
+  if (
+    options.name &&
+    options.vendor &&
+    options.appId &&
+    options.binaryName &&
+    options.firefoxVersion
+  ) {
+    // Full non-interactive mode - all values provided via CLI
+    finalName = options.name;
+    finalVendor = options.vendor;
+    finalAppId = options.appId;
+    finalBinaryName = options.binaryName;
+    finalFirefoxVersion = options.firefoxVersion;
+  } else if (!isInteractive) {
+    // Non-interactive but missing required options
+    throw new InvalidArgumentError(
+      'Missing required options for non-interactive mode. Required: --name, --vendor, --app-id, --binary-name, --firefox-version'
+    );
+  } else {
+    // Interactive mode - prompt for missing values only
+    const project = await p.group(
+      {
+        name: () =>
+          options.name
+            ? Promise.resolve(options.name)
+            : p.text({
+                message: 'What is the name of your browser?',
+                placeholder: 'MyBrowser',
+                validate: (value) => {
+                  if (!value.trim()) return 'Name is required';
+                  if (value.length > 50) return 'Name must be 50 characters or less';
+                  return undefined;
+                },
+              }),
 
-      appId: ({ results }) =>
-        p.text({
-          message: 'Application ID (reverse-domain format)',
-          placeholder: `org.${(results.name ?? 'browser').toLowerCase().replace(/[^a-z0-9]/g, '')}.browser`,
-          validate: (value) => {
-            if (value && !isValidAppId(value)) {
-              return 'Must be in reverse-domain format (e.g., org.example.browser)';
-            }
-            return undefined;
-          },
-        }),
+        vendor: () =>
+          options.vendor
+            ? Promise.resolve(options.vendor)
+            : p.text({
+                message: 'What is your vendor/company name?',
+                placeholder: 'My Company',
+                validate: (value) => {
+                  if (!value.trim()) return 'Vendor is required';
+                  return undefined;
+                },
+              }),
 
-      binaryName: ({ results }) =>
-        p.text({
-          message: 'Binary name (executable name)',
-          placeholder: (results.name ?? 'browser').toLowerCase().replace(/[^a-z0-9]/g, ''),
-          validate: (value) => {
-            if (value && !/^[a-z][a-z0-9-]*$/.test(value)) {
-              return 'Must start with a letter and contain only lowercase letters, numbers, and hyphens';
-            }
-            return undefined;
-          },
-        }),
+        appId: ({ results }) =>
+          options.appId
+            ? Promise.resolve(options.appId)
+            : p.text({
+                message: 'Application ID (reverse-domain format)',
+                placeholder: `org.${(results.name ?? 'browser').toLowerCase().replace(/[^a-z0-9]/g, '')}.browser`,
+                validate: (value) => {
+                  if (value && !isValidAppId(value)) {
+                    return 'Must be in reverse-domain format (e.g., org.example.browser)';
+                  }
+                  return undefined;
+                },
+              }),
 
-      firefoxVersion: () =>
-        p.text({
-          message: 'Firefox version to base on',
-          placeholder: '146.0',
-          validate: (value) => {
-            if (value && !isValidFirefoxVersion(value)) {
-              return 'Invalid Firefox version format (e.g., 146.0 or 128.0esr)';
-            }
-            return undefined;
-          },
-        }),
-    },
-    {
-      onCancel: () => {
-        cancel('Setup cancelled');
-        process.exit(0);
+        binaryName: ({ results }) =>
+          options.binaryName
+            ? Promise.resolve(options.binaryName)
+            : p.text({
+                message: 'Binary name (executable name)',
+                placeholder: (results.name ?? 'browser').toLowerCase().replace(/[^a-z0-9]/g, ''),
+                validate: (value) => {
+                  if (value && !/^[a-z][a-z0-9-]*$/.test(value)) {
+                    return 'Must start with a letter and contain only lowercase letters, numbers, and hyphens';
+                  }
+                  return undefined;
+                },
+              }),
+
+        firefoxVersion: () =>
+          options.firefoxVersion
+            ? Promise.resolve(options.firefoxVersion)
+            : p.text({
+                message: 'Firefox version to base on',
+                placeholder: '146.0',
+                validate: (value) => {
+                  if (value && !isValidFirefoxVersion(value)) {
+                    return 'Invalid Firefox version format (e.g., 146.0 or 128.0esr)';
+                  }
+                  return undefined;
+                },
+              }),
       },
-    }
-  );
+      {
+        onCancel: () => {
+          cancel('Setup cancelled');
+          process.exit(0);
+        },
+      }
+    );
 
-  // Apply defaults for empty inputs
-  const sanitizedName = project.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const finalAppId = (project.appId as string).trim() || `org.${sanitizedName}.browser`;
-  const finalBinaryName = (project.binaryName as string).trim() || sanitizedName;
-  const finalFirefoxVersion = project.firefoxVersion.trim() || '146.0';
+    // Apply defaults for empty inputs
+    const sanitizedName = project.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    finalName = project.name;
+    finalVendor = project.vendor;
+    finalAppId = (project.appId as string).trim() || `org.${sanitizedName}.browser`;
+    finalBinaryName = (project.binaryName as string).trim() || sanitizedName;
+    finalFirefoxVersion = project.firefoxVersion.trim() || '146.0';
+  }
 
   // Create configuration
   const config: ForgeConfig = {
-    name: project.name,
-    vendor: project.vendor,
+    name: finalName,
+    vendor: finalVendor,
     appId: finalAppId,
     binaryName: finalBinaryName,
     firefox: {

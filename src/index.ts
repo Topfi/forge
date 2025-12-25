@@ -80,10 +80,34 @@ export function createProgram(): Command {
   program
     .command('setup')
     .description('Initialize a new Forge project')
+    .option('--name <name>', 'Browser name')
+    .option('--vendor <vendor>', 'Vendor/company name')
+    .option('--app-id <appId>', 'Application ID (reverse-domain format)')
+    .option('--binary-name <binaryName>', 'Binary name (executable name)')
+    .option('--firefox-version <version>', 'Firefox version to base on')
+    .option('-f, --force', 'Overwrite existing configuration without prompting')
     .action(
-      withErrorHandling(async () => {
-        await setupCommand(getProjectRoot());
-      })
+      withErrorHandling(
+        async (options: {
+          name?: string;
+          vendor?: string;
+          appId?: string;
+          binaryName?: string;
+          firefoxVersion?: string;
+          force?: boolean;
+        }) => {
+          await setupCommand(getProjectRoot(), {
+            ...(options.name !== undefined ? { name: options.name } : {}),
+            ...(options.vendor !== undefined ? { vendor: options.vendor } : {}),
+            ...(options.appId !== undefined ? { appId: options.appId } : {}),
+            ...(options.binaryName !== undefined ? { binaryName: options.binaryName } : {}),
+            ...(options.firefoxVersion !== undefined
+              ? { firefoxVersion: options.firefoxVersion }
+              : {}),
+            ...(options.force !== undefined ? { force: options.force } : {}),
+          });
+        }
+      )
     );
 
   // Download command

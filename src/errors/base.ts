@@ -43,3 +43,28 @@ export abstract class ForgeError extends Error {
 export class GeneralError extends ForgeError {
   readonly code = ExitCode.GENERAL_ERROR;
 }
+
+/**
+ * Error thrown when a command-line argument is invalid.
+ */
+export class InvalidArgumentError extends ForgeError {
+  readonly code = ExitCode.INVALID_ARGUMENT;
+
+  constructor(
+    message: string,
+    public readonly argument?: string,
+    cause?: Error
+  ) {
+    super(message, cause);
+  }
+
+  override get userMessage(): string {
+    let msg = `Invalid Argument: ${this.message}`;
+
+    if (this.argument) {
+      msg += `\n\nArgument: ${this.argument}`;
+    }
+
+    return msg;
+  }
+}
