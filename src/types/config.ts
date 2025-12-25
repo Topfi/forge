@@ -1,7 +1,7 @@
 /**
  * Firefox product type for downloads.
  */
-export type FirefoxProduct = 'firefox' | 'firefox-esr' | 'firefox-beta' | 'firefox-nightly';
+export type FirefoxProduct = 'firefox' | 'firefox-esr' | 'firefox-beta';
 
 /**
  * Firefox version configuration.

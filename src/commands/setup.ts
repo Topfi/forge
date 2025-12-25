@@ -6,7 +6,12 @@ import { ensureDir, pathExists } from '../utils/fs.js';
 import { intro, outro, spinner, cancel, isCancel } from '../utils/logger.js';
 import type { ForgeConfig } from '../types/config.js';
 import type { SetupOptions } from '../types/commands.js';
-import { isValidAppId, isValidFirefoxVersion } from '../utils/validation.js';
+import {
+  isValidAppId,
+  isValidFirefoxVersion,
+  isValidFirefoxProduct,
+  inferProductFromVersion,
+} from '../utils/validation.js';
 import { InvalidArgumentError } from '../errors/base.js';
 import { ConfigError } from '../errors/config.js';
 
@@ -49,8 +54,14 @@ function validateCliOptions(options: SetupOptions): void {
   }
   if (options.firefoxVersion !== undefined && !isValidFirefoxVersion(options.firefoxVersion)) {
     throw new InvalidArgumentError(
-      'Invalid Firefox version format (e.g., 146.0 or 128.0esr)',
+      'Invalid Firefox version format (e.g., 146.0, 128.0esr, or 147.0b1)',
       '--firefox-version'
+    );
+  }
+  if (options.product !== undefined && !isValidFirefoxProduct(options.product)) {
+    throw new InvalidArgumentError(
+      'Invalid product (use: firefox, firefox-esr, firefox-beta)',
+      '--product'
     );
   }
 }
@@ -93,6 +104,7 @@ export async function setupCommand(projectRoot: string, options: SetupOptions = 
   let finalAppId: string;
   let finalBinaryName: string;
   let finalFirefoxVersion: string;
+  let finalProduct: 'firefox' | 'firefox-esr' | 'firefox-beta';
 
   if (
     options.name &&
@@ -107,6 +119,8 @@ export async function setupCommand(projectRoot: string, options: SetupOptions = 
     finalAppId = options.appId;
     finalBinaryName = options.binaryName;
     finalFirefoxVersion = options.firefoxVersion;
+    // Use provided product, infer from version, or default to 'firefox'
+    finalProduct = options.product ?? inferProductFromVersion(options.firefoxVersion) ?? 'firefox';
   } else if (!isInteractive) {
     // Non-interactive but missing required options
     throw new InvalidArgumentError(
@@ -177,11 +191,34 @@ export async function setupCommand(projectRoot: string, options: SetupOptions = 
                 placeholder: '146.0',
                 validate: (value) => {
                   if (value && !isValidFirefoxVersion(value)) {
-                    return 'Invalid Firefox version format (e.g., 146.0 or 128.0esr)';
+                    return 'Invalid Firefox version format (e.g., 146.0, 128.0esr, or 147.0b1)';
                   }
                   return undefined;
                 },
               }),
+
+        product: ({ results }) => {
+          // If product was provided via CLI, use it
+          if (options.product) {
+            return Promise.resolve(options.product);
+          }
+          // Try to infer from version
+          const inferredProduct = inferProductFromVersion(
+            results.firefoxVersion ?? options.firefoxVersion ?? ''
+          );
+          if (inferredProduct) {
+            return Promise.resolve(inferredProduct);
+          }
+          // Otherwise, prompt
+          return p.select({
+            message: 'Which Firefox product?',
+            options: [
+              { value: 'firefox', label: 'Firefox (stable releases)' },
+              { value: 'firefox-esr', label: 'Firefox ESR (extended support)' },
+              { value: 'firefox-beta', label: 'Firefox Beta (pre-release)' },
+            ],
+          });
+        },
       },
       {
         onCancel: () => {
@@ -198,6 +235,7 @@ export async function setupCommand(projectRoot: string, options: SetupOptions = 
     finalAppId = (project.appId as string).trim() || `org.${sanitizedName}.browser`;
     finalBinaryName = (project.binaryName as string).trim() || sanitizedName;
     finalFirefoxVersion = project.firefoxVersion.trim() || '146.0';
+    finalProduct = project.product as 'firefox' | 'firefox-esr' | 'firefox-beta';
   }
 
   // Create configuration
@@ -208,7 +246,7 @@ export async function setupCommand(projectRoot: string, options: SetupOptions = 
     binaryName: finalBinaryName,
     firefox: {
       version: finalFirefoxVersion,
-      product: 'firefox',
+      product: finalProduct,
     },
     build: {
       jobs: 8,

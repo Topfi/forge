@@ -65,10 +65,36 @@ export function assertObject(
 
 /**
  * Validates a Firefox version string.
- * Accepts formats like "146.0", "146.0.1", "128.0esr"
+ * Accepts formats like "146.0", "146.0.1", "128.0esr", "147.0b1"
  */
 export function isValidFirefoxVersion(version: string): boolean {
-  return /^\d+\.\d+(\.\d+)?(esr)?$/.test(version);
+  // Stable/ESR: 146.0, 146.0.1, 128.0esr, 128.0.1esr
+  // Beta: 147.0b1, 147.0b2
+  return /^\d+\.\d+(b\d+)?(\.\d+)?(esr)?$/.test(version);
+}
+
+/**
+ * Validates a Firefox product string.
+ * Accepts: firefox, firefox-esr, firefox-beta
+ */
+export function isValidFirefoxProduct(product: string): boolean {
+  return ['firefox', 'firefox-esr', 'firefox-beta'].includes(product);
+}
+
+/**
+ * Infers the Firefox product type from a version string.
+ * Returns undefined if no clear inference can be made.
+ */
+export function inferProductFromVersion(
+  version: string
+): 'firefox' | 'firefox-esr' | 'firefox-beta' | undefined {
+  if (version.toLowerCase().includes('esr')) {
+    return 'firefox-esr';
+  }
+  if (/b\d+/.test(version)) {
+    return 'firefox-beta';
+  }
+  return undefined;
 }
 
 /**

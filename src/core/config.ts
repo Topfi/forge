@@ -105,7 +105,7 @@ export function validateConfig(data: unknown): ForgeConfig {
     throw new Error('Config field "firefox.product" must be a string');
   }
 
-  const validProducts = ['firefox', 'firefox-esr', 'firefox-beta', 'firefox-nightly'];
+  const validProducts = ['firefox', 'firefox-esr', 'firefox-beta'];
   if (!validProducts.includes(firefox['product'])) {
     throw new Error(`Config field "firefox.product" must be one of: ${validProducts.join(', ')}`);
   }

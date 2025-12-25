@@ -1,4 +1,9 @@
 /**
+ * Firefox product types available for setup.
+ */
+export type SetupFirefoxProduct = 'firefox' | 'firefox-esr' | 'firefox-beta';
+
+/**
  * Options for the setup command.
  */
 export interface SetupOptions {
@@ -12,6 +17,8 @@ export interface SetupOptions {
   binaryName?: string;
   /** Firefox version to base on */
   firefoxVersion?: string;
+  /** Firefox product type (firefox, firefox-esr, firefox-beta) */
+  product?: SetupFirefoxProduct;
   /** Overwrite existing configuration without prompting */
   force?: boolean;
 }
@@ -32,7 +39,7 @@ export interface BuildOptions {
   ui?: boolean;
   /** Number of parallel jobs */
   jobs?: number;
-  /** Brand to build (stable, nightly, etc.) */
+  /** Brand to build (stable, esr, etc.) */
   brand?: string;
 }
 

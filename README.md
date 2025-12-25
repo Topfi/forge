@@ -254,7 +254,7 @@ your-browser/
 | `appId` | Application ID (reverse-domain format) |
 | `binaryName` | Executable name |
 | `firefox.version` | Firefox version to base on |
-| `firefox.product` | Product type: `firefox`, `firefox-esr`, `firefox-beta`, `firefox-nightly` |
+| `firefox.product` | Product type: `firefox`, `firefox-esr`, `firefox-beta` |
 | `build.jobs` | Number of parallel build jobs |
 
 ## Patches
@@ -309,4 +309,4 @@ The following features are planned for future releases:
 - **Docker builds** - Reproducible builds using Docker containers
 - **CI mode** - Automated setup for continuous integration pipelines
 - **Update manifests** - Generate update server manifests for auto-updates
-- **UI mode** - Rebuild only UI changes for faster iteration
+- **Nightly** - Nightly support comes later, need to hg clone from centrale

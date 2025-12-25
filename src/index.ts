@@ -85,6 +85,7 @@ export function createProgram(): Command {
     .option('--app-id <appId>', 'Application ID (reverse-domain format)')
     .option('--binary-name <binaryName>', 'Binary name (executable name)')
     .option('--firefox-version <version>', 'Firefox version to base on')
+    .option('--product <product>', 'Firefox product (firefox, firefox-esr, firefox-beta)')
     .option('-f, --force', 'Overwrite existing configuration without prompting')
     .action(
       withErrorHandling(
@@ -94,6 +95,7 @@ export function createProgram(): Command {
           appId?: string;
           binaryName?: string;
           firefoxVersion?: string;
+          product?: string;
           force?: boolean;
         }) => {
           await setupCommand(getProjectRoot(), {
@@ -103,6 +105,9 @@ export function createProgram(): Command {
             ...(options.binaryName !== undefined ? { binaryName: options.binaryName } : {}),
             ...(options.firefoxVersion !== undefined
               ? { firefoxVersion: options.firefoxVersion }
+              : {}),
+            ...(options.product !== undefined
+              ? { product: options.product as 'firefox' | 'firefox-esr' | 'firefox-beta' }
               : {}),
             ...(options.force !== undefined ? { force: options.force } : {}),
           });
