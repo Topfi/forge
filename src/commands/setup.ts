@@ -54,7 +54,7 @@ function validateCliOptions(options: SetupOptions): void {
   }
   if (options.firefoxVersion !== undefined && !isValidFirefoxVersion(options.firefoxVersion)) {
     throw new InvalidArgumentError(
-      'Invalid Firefox version format (e.g., 146.0, 128.0esr, or 147.0b1)',
+      'Invalid Firefox version format (e.g., 146.0, 140.0esr, or 147.0b1)',
       '--firefox-version'
     );
   }
@@ -188,10 +188,10 @@ export async function setupCommand(projectRoot: string, options: SetupOptions = 
             ? Promise.resolve(options.firefoxVersion)
             : p.text({
                 message: 'Firefox version to base on',
-                placeholder: '146.0',
+                placeholder: '140.0esr',
                 validate: (value) => {
                   if (value && !isValidFirefoxVersion(value)) {
-                    return 'Invalid Firefox version format (e.g., 146.0, 128.0esr, or 147.0b1)';
+                    return 'Invalid Firefox version format (e.g., 146.0, 140.0esr, or 147.0b1)';
                   }
                   return undefined;
                 },
@@ -234,7 +234,7 @@ export async function setupCommand(projectRoot: string, options: SetupOptions = 
     finalVendor = project.vendor;
     finalAppId = (project.appId as string).trim() || `org.${sanitizedName}.browser`;
     finalBinaryName = (project.binaryName as string).trim() || sanitizedName;
-    finalFirefoxVersion = project.firefoxVersion.trim() || '146.0';
+    finalFirefoxVersion = project.firefoxVersion.trim() || '140.0esr';
     finalProduct = project.product as 'firefox' | 'firefox-esr' | 'firefox-beta';
   }
 

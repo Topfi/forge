@@ -19,7 +19,7 @@ const ARCHIVE_BASE_URL = 'https://archive.mozilla.org/pub/firefox/releases';
 
 /**
  * Gets the download URL for a Firefox source tarball.
- * @param version - Firefox version (e.g., "146.0")
+ * @param version - Firefox version (e.g., "140.0esr")
  * @param product - Firefox product type
  * @returns Full URL to the source tarball
  */

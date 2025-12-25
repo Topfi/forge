@@ -65,10 +65,10 @@ export function assertObject(
 
 /**
  * Validates a Firefox version string.
- * Accepts formats like "146.0", "146.0.1", "128.0esr", "147.0b1"
+ * Accepts formats like "146.0", "146.0.1", "140.0esr", "147.0b1"
  */
 export function isValidFirefoxVersion(version: string): boolean {
-  // Stable/ESR: 146.0, 146.0.1, 128.0esr, 128.0.1esr
+  // Stable/ESR: 146.0, 146.0.1, 140.0esr, 128.0.1esr
   // Beta: 147.0b1, 147.0b2
   return /^\d+\.\d+(b\d+)?(\.\d+)?(esr)?$/.test(version);
 }
