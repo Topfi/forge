@@ -1,4 +1,5 @@
 import { join } from 'node:path';
+import { readdir } from 'node:fs/promises';
 import { exec, execInherit, executableExists } from '../utils/process.js';
 import { pathExists, readText, writeText } from '../utils/fs.js';
 import { getPlatform } from '../utils/platform.js';
@@ -132,6 +133,46 @@ export async function machPackage(engineDir: string): Promise<number> {
  */
 export async function watch(engineDir: string): Promise<number> {
   return runMach(['watch'], engineDir, { inherit: true });
+}
+
+/**
+ * Result of checking for build artifacts.
+ */
+export interface BuildArtifactCheck {
+  /** Whether build artifacts exist */
+  exists: boolean;
+  /** Name of the obj-* directory if found */
+  objDir?: string;
+}
+
+/**
+ * Checks if build artifacts exist in the engine directory.
+ * Looks for obj-* directories with a dist subdirectory.
+ * @param engineDir - Path to the engine directory
+ * @returns Build artifact check result
+ */
+export async function hasBuildArtifacts(engineDir: string): Promise<BuildArtifactCheck> {
+  try {
+    const entries = await readdir(engineDir);
+    const objDirs = entries.filter((e) => e.startsWith('obj-'));
+
+    // Find first obj-* directory
+    const objDir = objDirs[0];
+    if (!objDir) {
+      return { exists: false };
+    }
+
+    // Check if the obj directory has meaningful content (dist folder)
+    const distPath = join(engineDir, objDir, 'dist');
+    const hasContent = await pathExists(distPath);
+
+    if (hasContent) {
+      return { exists: true, objDir };
+    }
+    return { exists: false, objDir };
+  } catch {
+    return { exists: false };
+  }
 }
 
 /**

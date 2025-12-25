@@ -3,7 +3,7 @@ import { getProjectPaths } from '../core/config.js';
 import { hasChanges, resetChanges, isGitRepository } from '../core/git.js';
 import { pathExists } from '../utils/fs.js';
 import { intro, outro, info, warn, spinner, isCancel, cancel } from '../utils/logger.js';
-import { GeneralError } from '../errors/base.js';
+import { GeneralError, InvalidArgumentError } from '../errors/base.js';
 import type { ResetOptions } from '../types/commands.js';
 
 /**
@@ -39,6 +39,16 @@ export async function resetCommand(projectRoot: string, options: ResetOptions): 
 
   // Confirm reset unless --force is specified
   if (!options.force) {
+    // Check for non-interactive mode
+    const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+
+    if (!isInteractive) {
+      throw new InvalidArgumentError(
+        'Interactive confirmation not available. Use --force flag to reset without confirmation.',
+        'Use: forge reset --force'
+      );
+    }
+
     warn('This will discard all uncommitted changes in the engine directory.');
 
     const confirmed = await p.confirm({

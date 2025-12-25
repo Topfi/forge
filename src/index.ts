@@ -184,7 +184,7 @@ export function createProgram(): Command {
   program
     .command('reset')
     .description('Reset engine/ to clean state')
-    .option('-f, --force', 'Skip confirmation prompt')
+    .option('-f, --force', 'Skip confirmation prompt (required for scripts/CI)')
     .action(
       withErrorHandling(async (options: { force?: boolean }) => {
         await resetCommand(getProjectRoot(), {

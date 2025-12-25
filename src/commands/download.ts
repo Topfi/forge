@@ -67,7 +67,7 @@ export async function downloadCommand(
   }
 
   // Initialize git repository
-  const gitSpinner = spinner('Initializing git repository...');
+  const gitSpinner = spinner('Initializing git repository (this may take a few minutes)...');
 
   try {
     await initRepository(paths.engine, 'firefox');

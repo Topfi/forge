@@ -5,8 +5,21 @@ import { getFileDiff, isGitRepository, getStatusWithCodes } from '../core/git.js
 import { getNextPatchNumber } from '../core/patches.js';
 import { pathExists, writeText, ensureDir } from '../utils/fs.js';
 import { intro, outro, info, spinner, isCancel, cancel } from '../utils/logger.js';
-import { GeneralError } from '../errors/base.js';
+import { GeneralError, InvalidArgumentError } from '../errors/base.js';
 import type { ExportOptions } from '../types/commands.js';
+
+/**
+ * Validates a patch name.
+ * @param name - The patch name to validate
+ * @returns Error message if invalid, undefined if valid
+ */
+function validatePatchName(name: string): string | undefined {
+  if (!name.trim()) return 'Name is required';
+  if (name.length > 50) return 'Name must be 50 characters or less';
+  if (!/^[a-zA-Z0-9\-_ ]+$/.test(name))
+    return 'Name can only contain letters, numbers, hyphens, underscores, and spaces';
+  return undefined;
+}
 
 /**
  * Sanitizes a string for use in a filename.
@@ -80,6 +93,24 @@ export async function exportCommand(
 
   // Get or prompt for patch name
   let patchName = options.name;
+
+  // Validate provided name
+  if (patchName) {
+    const validationError = validatePatchName(patchName);
+    if (validationError) {
+      throw new InvalidArgumentError(validationError, '--name');
+    }
+  }
+
+  // Check for non-interactive mode
+  const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+
+  if (!patchName && !isInteractive) {
+    throw new InvalidArgumentError(
+      'The --name flag is required in non-interactive mode',
+      'Use: forge export <file> --name "my-patch-name"'
+    );
+  }
 
   if (!patchName) {
     const nameResult = await p.text({
