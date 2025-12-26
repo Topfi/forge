@@ -230,9 +230,7 @@ export async function getUntrackedFiles(repoDir: string): Promise<string[]> {
     cwd: repoDir,
   });
 
-  return result.stdout
-    .split('\n')
-    .filter((line) => line.trim().length > 0);
+  return result.stdout.split('\n').filter((line) => line.trim().length > 0);
 }
 
 /**
