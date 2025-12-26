@@ -154,11 +154,16 @@ export async function downloadFirefoxSource(
   await removeDir(tempDir);
   await extractTarXz(tarballPath, tempDir);
 
-  // Firefox source extracts to firefox-{version}/ subdirectory
-  // Move it to the final destination
-  const extractedDir = join(tempDir, `firefox-${version}`);
+  // Firefox source extracts to a subdirectory (e.g., firefox-140.0/)
+  // Find it dynamically since ESR versions may have different naming
+  const { readdir } = await import('node:fs/promises');
+  const entries = await readdir(tempDir, { withFileTypes: true });
+  const extractedSubdir = entries.find(
+    (entry) => entry.isDirectory() && entry.name.startsWith('firefox-')
+  );
 
-  if (await pathExists(extractedDir)) {
+  if (extractedSubdir) {
+    const extractedDir = join(tempDir, extractedSubdir.name);
     await removeDir(destDir);
     await rename(extractedDir, destDir);
     await removeDir(tempDir);
