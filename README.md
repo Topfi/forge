@@ -1,6 +1,6 @@
 # Forge
 
-A build tool for customizing Firefox. Forge helps you create, build, and maintain custom Firefox-based browsers.
+A build tool for customizing Firefox. Forge helps you create, build, and maintain custom Firefox-based browsers. Inspired by [fern.js](https://github.com/ghostery/user-agent-desktop?tab=readme-ov-file#build-locally) and [Melon](https://github.com/dothq/melon).
 
 ## Features
 

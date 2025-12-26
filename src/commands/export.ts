@@ -1,7 +1,12 @@
 import * as p from '@clack/prompts';
 import { join } from 'node:path';
 import { getProjectPaths } from '../core/config.js';
-import { getFileDiff, isGitRepository, getStatusWithCodes } from '../core/git.js';
+import {
+  getFileDiff,
+  generateNewFileDiff,
+  isGitRepository,
+  getStatusWithCodes,
+} from '../core/git.js';
 import { getNextPatchNumber } from '../core/patches.js';
 import { pathExists, writeText, ensureDir } from '../utils/fs.js';
 import { intro, outro, info, spinner, isCancel, cancel } from '../utils/logger.js';
@@ -70,19 +75,19 @@ export async function exportCommand(
     );
   }
 
-  // Check if file is untracked
-  if (fileStatus.status === '??') {
+  // Check if it's a directory (git status shows directories with trailing /)
+  if (file.endsWith('/')) {
     throw new GeneralError(
-      `File "${file}" is untracked (new file).\n\n` +
-        'To export a new file, first stage it with: git -C engine add ' +
-        file +
-        '\n' +
-        'Then run "./forge/forge export-all" to include it in a patch.'
+      `"${file}" is a directory.\n\n` +
+        'Use "./forge/forge export-all" to export all changes including new directories.'
     );
   }
 
-  // Get the diff
-  const diff = await getFileDiff(paths.engine, file);
+  // Get the diff - use different method for new files vs modified files
+  const isNewFile = fileStatus.status === '??';
+  const diff = isNewFile
+    ? await generateNewFileDiff(paths.engine, file)
+    : await getFileDiff(paths.engine, file);
 
   if (!diff.trim()) {
     throw new GeneralError(

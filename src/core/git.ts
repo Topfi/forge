@@ -1,5 +1,5 @@
 import { exec, executableExists } from '../utils/process.js';
-import { pathExists } from '../utils/fs.js';
+import { pathExists, readText } from '../utils/fs.js';
 import { join } from 'node:path';
 import { GitError, GitNotFoundError, PatchApplyError } from '../errors/git.js';
 
@@ -181,15 +181,85 @@ export async function getFileDiff(repoDir: string, filePath: string): Promise<st
 }
 
 /**
- * Gets the diff for all modified files.
+ * Generates a unified diff for a new (untracked) file.
+ * @param repoDir - Repository directory
+ * @param filePath - Path to the file (relative to repo)
+ * @returns Diff content in unified diff format
+ */
+export async function generateNewFileDiff(repoDir: string, filePath: string): Promise<string> {
+  const fullPath = join(repoDir, filePath);
+  const content = await readText(fullPath);
+  const lines = content.split('\n');
+
+  // Handle files that don't end with newline
+  const hasTrailingNewline = content.endsWith('\n');
+  const lineCount = hasTrailingNewline ? lines.length - 1 : lines.length;
+
+  // Build the unified diff format for a new file
+  const diffLines: string[] = [
+    `diff --git a/${filePath} b/${filePath}`,
+    'new file mode 100644',
+    '--- /dev/null',
+    `+++ b/${filePath}`,
+    `@@ -0,0 +1,${lineCount} @@`,
+  ];
+
+  // Add each line with a + prefix
+  for (let i = 0; i < lineCount; i++) {
+    diffLines.push(`+${lines[i]}`);
+  }
+
+  // Add "No newline at end of file" marker if needed
+  if (!hasTrailingNewline && lineCount > 0) {
+    diffLines.push('\\ No newline at end of file');
+  }
+
+  return diffLines.join('\n');
+}
+
+/**
+ * Gets all untracked files (including files inside untracked directories).
+ * @param repoDir - Repository directory
+ * @returns List of untracked file paths
+ */
+export async function getUntrackedFiles(repoDir: string): Promise<string[]> {
+  await ensureGit();
+
+  // Use git ls-files to get all untracked files, which properly expands directories
+  const result = await exec('git', ['ls-files', '--others', '--exclude-standard'], {
+    cwd: repoDir,
+  });
+
+  return result.stdout
+    .split('\n')
+    .filter((line) => line.trim().length > 0);
+}
+
+/**
+ * Gets the diff for all modified files, including untracked (new) files.
  * @param repoDir - Repository directory
  * @returns Diff content
  */
 export async function getAllDiff(repoDir: string): Promise<string> {
   await ensureGit();
 
+  // Get diff for tracked files
   const result = await exec('git', ['diff', 'HEAD'], { cwd: repoDir });
-  return result.stdout;
+  const trackedDiff = result.stdout;
+
+  // Get untracked files (properly expanded, not directories)
+  const untrackedFiles = await getUntrackedFiles(repoDir);
+
+  // Generate diffs for untracked files
+  const untrackedDiffs: string[] = [];
+  for (const file of untrackedFiles) {
+    const diff = await generateNewFileDiff(repoDir, file);
+    untrackedDiffs.push(diff);
+  }
+
+  // Combine all diffs
+  const allDiffs = [trackedDiff, ...untrackedDiffs].filter((d) => d.trim().length > 0);
+  return allDiffs.join('\n');
 }
 
 /**
